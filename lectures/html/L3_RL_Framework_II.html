@@ -42,11 +42,136 @@
                  <div class="ack">Contents are based on <a href="https://mitpress.mit.edu/books/reinforcement-learning-second-edition">Reinforcement Learning: An Introduction</a> from Prof. Richard S. Sutton and Prof. Andrew G. Barto, and <a href="https://www.davidsilver.uk/teaching/">COMPM050/COMPGI13</a> taught at UCL by Prof. David Silver.</div>
              </div>
 
+
              <div id="toc" class="step slide" data-rel-x="2200" data-rel-y="0">
                  <h1 class="nt">Agenda</h1>
                  <ul class="large" id="agenda"></ul>
                  click to jump to the section.
              </div>
+
+            <!-- ################################################################### -->
+            <!-- # New section                                                     # -->
+            <!-- ################################################################### -->
+            <div class="step slide separator" id="optimal">
+                <h1 class="nt">Review</h1>
+            </div>
+
+            <!-- ################################################################### -->
+            <div class="step slide">
+                <h1 class="nt">Agent-Environment Interface</h1>
+                <ul>
+                    <li><b>Agent</b>: learner and decision maker.</li>
+                    <li><b>Environment</b>: the thing agent interacts with, comprising everything outside the agent.</li>
+                    <li><b>Action</b>: how agent interacts with the environment.</li>
+                    <li>In engineers’ terms, they are called controller, controlled system (or plant), and control signal.</li>
+                </ul>
+                <div style="margin-top: 50px"></div>
+                <img src="./L2/agent-env-interface.png"></img>
+                <!-- <div class="ack">Sutton, Richard S., and Andrew G. Barto. Reinforcement learning: An introduction. MIT press, 2018.</div> -->
+            </div>
+
+            <!-- ################################################################### -->
+            <div class="step slide">
+                <h1 class="nt">Probabilistic Description of Environment: Markov Decision Processes</h1>
+                <ul>
+                    <li>A Markov decision process (MDP) is a Markov process with rewards and decisions. </li>
+                    <li>Definition: </li>
+                    <li>A <b>Markov decision process</b> is a tuple $(\mc{S}, \mc{A}, \mc{P}, \mc{R})$
+                        <ul>
+                            <li>$\mc{S}$ is a set of states (discrete or continuous)</li>
+                            <li>$\mc{A}$ is a set of actions (discrete or continuous)</li>
+                            <li>$\mc{P}$ is a state transition probability function
+                                <ul>
+                                    <li>$\mc{P}^{a}_{s,s'}=P(s'|s,a)=\text{Pr}(S_{t+1}=s'|S_t=s,A_t=a)$</li>
+                                </ul>
+                            </li>
+                            <li>$\mc{R}$ is a reward function
+                                <ul>
+                                    <li>$\mc{R}^{a}_{s}=R(s,a)=\bb{E}[R_{t+1}|S_t=s,A_t=a]$</li>
+                                </ul>
+                                <li>Sometimes, an MDP also includes an initial state distribution $\mu$</li>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- ################################################################### -->
+            <div class="step slide">
+                <h1 class="vt">Policy</h1>
+                <ul>
+                    <li>A policy is the agent's behaviour</li>
+                    <li>It is a map from state to action, e.g.,
+                        <ul>
+                            <li>Deterministic policy: $a=\pi(s)$</li>
+                            <li>Stochastic policy: $\pi(a|s)=\text{Pr}(A_t=a|S_t=s)$</li>
+                        </ul>
+                    </li>
+                    <!-- <li>People usually denote the optimal policy of a task as $\pi^*$</li> -->
+                </ul>
+            </div>
+
+            <!-- ################################################################### -->
+            <div class="step slide">
+                <h1 class="nt">Maze Example: Policy</h1>
+                <div class="row">
+                    <div class="column" style="flex: 30%">
+                        <ul>
+                            <li>Arrows represent policy $\pi(s)$ for each state s</li>
+                            <li>This is the optimal policy for this Maze MDP</li>
+                        </ul>
+                    </div>
+                    <div class="column" style="flex: 30%">
+                        <img src="./L2/maze_policy.png"></img>
+                    </div>
+                </div>
+            </div>
+            <!-- ################################################################### -->
+            <div class="step slide">
+                <h1 class="et">Value Function</h1>
+                <ul>
+                    <li>Value function is a prediction of future reward</li>
+                    <li>Evaluates the goodness/badness of states</li>
+                    <li class="substep"><b>State-value function</b>
+                        <ul>
+                            <li>The state-value function $V_\pi(s)$ of an MDP is the expected return starting from state $s$, following the policy $\pi$</li>
+                            <li>$V_\pi(s)=\bb{E}_\pi[G_t|S_t=s]$ (assuming infinite horizon here)</li>
+                        </ul>
+                    </li>
+                    <li class="substep"><b>Action-value function</b>                             
+                        <ul>
+                            <li>The action-value function $Q_\pi(s,a)$ is the expected return
+                                starting from state $s$, taking action $a$, following policy $\pi$</li>
+                            <li>$Q_\pi(s,a)=\bb{E}_\pi[G_t|S_t=s, A_t=a]$ (assuming infinite horizon here)</li>
+                        </ul>
+                    </li>
+                    <li class="substep">Notation explanation:                             
+                        <ul>
+                            <li>In this lecture, when we write $\bb{E}_\pi$, 
+                                it means we take expectation over all samples/trajectories generated by running the policy $\pi$ in the environment</li>
+                            <li>So it counts for all the randomness from policy, initial state, state transition, and reward.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- ################################################################### -->
+            <div class="step slide">
+                <h1 class="nt">Maze Example: Value Function</h1>
+                <div class="row">
+                    <div class="column" style="flex: 30%">
+                        <ul>
+                            <li>Numbers represent value $V_\pi(s)$ of each state $s$</li>
+                            <li>This is the value function corresponds to the optimal policy we showed previously</li>
+                        </ul>
+                    </div>
+                    <div class="column" style="flex: 30%">
+                        <img src="./L2/maze_value.png"></img>
+                    </div>
+                </div>
+            </div>
+
+
 
              <!-- ################################################################### -->
              <!-- # New section                                                     # -->
@@ -111,6 +236,7 @@
                          \[
                          \begin{aligned}
                          V^*(s)
+                         & = \max_a Q^*(s,a) \\
                          & = \max_a\bb{E}_{\pi_*}[G_t|S_t=s, A_t=a] \\
                          & = \max_a\bb{E}_{\pi_*}[R_{t+1}+\gamma G_{t+1}|S_t=s, A_t=a] \\
                          & = \max_a\bb{E}[R_{t+1}+\gamma V^*(S_{t+1})|S_t=s, A_t=a] \\
@@ -327,7 +453,7 @@
                      </li>
                      <li class="substep">If we expand one step further, we got TD(1)
                          <ul>
-                             <li>$V(S_t) \leftarrow V(S_t) + \alpha(R_{t+1}+\gamma R_{t+1} + \gamma^2 V(S_{t+2})-V(S_t))$</li>
+                             <li>$V(S_t) \leftarrow V(S_t) + \alpha(R_{t+1}+\gamma R_{t+2} + \gamma^2 V(S_{t+2})-V(S_t))$</li>
                              <li>Similarly, we can have TD(2), TD(3), ... </li>
                          </ul>
                      </li>
@@ -581,7 +707,7 @@
                          Suppose we are going to learn the Q-function. Let us follow the previous flow chart and answer three questions:
                      </li>
                      <ol>
-                         <li>Given transitions $\{(s,a,s',r)\}$ from some trajectories, how to improve the current Q-function?
+                         <li>Given transitions $\{(s,a,s',r)\}$ from some trajectories, how to update the current Q-function?
                              <ul class="substep">
                                  <li>By Temporal Difference learning, the update target for $Q(S,A)$ is
                                      <ul>
@@ -660,7 +786,7 @@
                      <li>All $m$ actions should be tried with non-zero probability</li>
                      <li>Formally,
                          \[
-                         \pi_*(a|s)=
+                         \pi_{\epsilon-Greedy}(a|s)=
                          \begin{cases}
                          \epsilon/m + 1-\epsilon, & \text{if}~~a=\text{argmax}_{a\in\mc{A}}~Q(s,a) \\  
                          \epsilon/m, & \text{otherwise}   
