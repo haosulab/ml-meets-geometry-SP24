@@ -41,7 +41,7 @@ mark.red {
             <div class="step slide title" data-x="-2200" data-y="-3000" id="title">
                 <h1 class="nt">L4: DQN and REINFORCE </h1>
                 <h2>Tongzhou Mu
-                    <p style="font-size:30px">(slides prepared by Hao Su, Tongzhou Mu, and Shuang Liu)</p>
+                    <p style="font-size:30px">(slides prepared by Hao Su, Shuang Liu, and Tongzhou Mu)</p>
                 </h2>
                 <h3>Spring, 2024</h3>
             </div>
@@ -310,9 +310,9 @@ mark.red {
                     </li>
                     <li>It is natural to build an <i>optimization problem</i>:
                         \[
-                        L(\th)=\bb{E}_{\color{red}{(s,a,s')\sim Env}}[TD_{\th}(s,a,s')] \tag{TD loss}
+                        L(\th)=\bb{E}_{\color{red}{(s,a,s',r)\sim Env}}[TD_{\th}(s,a,s',r)] \tag{TD loss}
                         \]
-                        where $TD_{\th}(s,a,s')=\|Q_{\th}(s,a)-[R(s,a,s')+\gamma\max_{a'}Q_{\th}(s',a')]\|^2$.
+                        where $TD_{\th}(s,a,s',r)=\|Q_{\th}(s,a)-[r+\gamma\max_{a'}Q_{\th}(s',a')]\|^2$.
                     </li>
                     <li>Note: How to obtain the $Env$ distribution has many options! 
                         <ul>
@@ -341,7 +341,7 @@ mark.red {
                             <ul>
                                 <li>We sample a batch of transitions and train the network by gradient descent:
                                     \[
-                                    \nabla_{\th}L(\th)=\bb{E}_{(s,a,s')\sim \rm{Replay Buffer}}[\nabla_{\th}TD_{\th}(s,a,s')]
+                                    \nabla_{\th}L(\th)=\bb{E}_{(s,a,s',r)\sim \rm{Replay Buffer}}[\nabla_{\th}TD_{\th}(s,a,s',r)]
                                     \]
                                 </li>
                             </ul>
@@ -362,7 +362,7 @@ mark.red {
                                     <li>Let $s$ be the current state</li>
                                     <li>With prob. $\epsilon$ sample a random action $a$. Otherwise select $a=\arg\max_a Q_{\th}(s,a)$ </li>
                                     <li>Execute $a$ in the environment, and receive the reward $r$ and the next state $s'$</li>
-                                    <li>Add transitions $(s,a,s')$ in $D$</li>
+                                    <li>Add transitions $(s,a,s',r)$ in $D$</li>
                                     <li>Sample a random batch from $D$ and build the batch TD loss</li>
                                     <li>Perform one or a few gradient descent steps on the TD loss</li>
                                 </ul>
@@ -400,7 +400,7 @@ mark.red {
                 <h1 class="nt">Some Theoretical Concerns about $Q$-Learning</h1>
                 <ul>
                     <li>Behavior/Target Network: Recall that 
-                        $TD_{\th}(s,a,s')=\|\color{blue}{Q_{\th}(s,a)}-[R(s,a,s')+\gamma\max_{a'}\color{red}{Q_{\th}(s',a')}]\|^2$. We keep two $Q$ networks in practice. We only update the blue network by gradient descent and use it to sample new trajectories. Every few episodes we replace the red one by the blue one. The reason is that the blue one changes too fast. The red one is called <i>target network</i> (to build target), and the blue one is called <i>behavior network</i> (to sample actions).
+                        $TD_{\th}(s,a,s',r)=\|\color{blue}{Q_{\th}(s,a)}-[r+\gamma\max_{a'}\color{red}{Q_{\th}(s',a')}]\|^2$. We keep two $Q$ networks in practice. We only update the blue network by gradient descent and use it to sample new trajectories. Every few episodes we replace the red one by the blue one. The reason is that the blue one changes too fast. The red one is called <i>target network</i> (to build target), and the blue one is called <i>behavior network</i> (to sample actions).
                     </li>
                     <li>Value overestimation: Note that the TD target takes the maximal $a$ for each $Q(s,\cdot)$. Since TD target can be biased, the max operator will cause the $Q$-value to be overestimated! There are methods to mitigate (e.g., double Q-learning) or work around (e.g., advantage function) the issue. 
                     </li>
@@ -703,155 +703,6 @@ mark.red {
                     <li><a href="https://towardsdatascience.com/why-there-is-a-problem-with-the-policy-gradient-theorem-in-deep-reinforcement-learning-958d845218f1">Why there is a problem with the Policy Gradient theorem in Deep Reinforcement Learning</a></li>
                 </ul>
                 <div class="rby">Read by Yourself</div>
-            </div>
-
-            <!-- ################################################################### -->
-            <!-- # New section                                                     # -->
-            <!-- ################################################################### -->
-
-            <div class="step slide separator">
-                <h1 class="nt">Practical First-Order Policy Optimization</h1>
-            </div>
-            <!-- ################################################################## -->
-            <div class="step slide">
-                <h1 class="nt">Advanced Value Estimates</h1>
-                <ul>
-                    <li>We have seen that we can use $\sum_{i = t}^{\infty} \gamma^{i - t} \cdot r_i$ as an unbiased estimate for $Q^{\pi_{\theta}, \gamma}(s_t, a_t)$.  </li>
-                    <li>While this estimate is unbiased, it has high variance, as all past rollouts are not used.</li>
-                    <li>
-                        We can also have a value network $v_{\omega}(s)$ to try to <b>memorize</b> (the estimates of) $V^{\pi_{\theta}, \gamma}(s)$ during the training. This way, whenever we need an estimate of $Q^{\pi_{\theta}, h}(s_t, a_t)$, we can use
-                        <ul>
-                            <li class="substep">$e_{t, \infty} = \sum_{i = t}^{\infty} \gamma^{i - t}\cdot r_i$, which is unbiased but has high variance. </li>
-                            <li class="substep">$e_{t, 0} = r_t + \gamma\cdot v_{\omega}(s_{t + 1})$, which is biased but possibly has lower variance. </li>
-                            <li class="substep">$e_{t, h} = \sum_{i = t}^{t+h} \gamma^{i - t}\cdot r_i + \gamma^{h + 1}\cdot v_{\omega}(s_{t+h+1})$, which has a trade-off between the first two, depending on the choice of $h$. </li>
-                            <li class="substep">$\sum_{h = 0}^{\infty} \alpha_h e_{t,h}$, further combines different $e_h$'s with tunable weights $\alpha_h$'s that summing to $1$. </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-            <!-- ################################################################### -->
-            <div class="step slide">
-                <h1 class="nt">Advantage</h1>
-                <ul>
-                    <li>We also introduce another statistics trick to reduce the variance of the value estimation without introducing bias.  </li>
-                </ul>
-                <ul class="substep">
-                    <li>Suppose that $X$ and $Y$ are two random variables. </li>
-                    <li>Recall that, if $Z=X-Y$, then
-                        \[
-                        \mathrm{Var}[Z]=\mathrm{Var}[X]+\mathrm{Var}[Y]-2\mathrm{Cov}(X,Y)
-                        \]
-                    </li>
-                    <li>If $X$ and $Y$ are strongly correlated, then $\mathrm{Var}[Z]$ is smaller than $\mathrm{Var}[X]$ and $\mathrm{Var}[Y]$.
-                        <ul>
-                            <li>For example, $X, Y\sim\bb{N}(0, 1)$, then $\mathrm{Var}[Z]=2-2\rho$, where $\rho$ is the Pearson correlation coefficient and $-1\le \rho\le 1$. For highly correlated $X$ and $Y$, $\rho \approx 1$, and $\mathrm{Var}[Z]\approx 0$.</li>
-                        </ul>
-                    </li>
-                </ul>
-                <ul class="substep">
-                    <li>For this reason, we introduce the function $A^{\pi_{\theta}, \gamma}(s, a)=Q^{\pi_{\theta}, \gamma}(s, a) - V^{\pi_{\theta}, \gamma}(s)$, which is called <span class="hl">advantage</span>. </li>
-                    <li>Our next goal is to relate $\nabla V^{\pi_{\theta}, \gamma}(s,a)$ with $A^{\pi_{\theta}, \gamma}(s, a)$, which has smaller variance than estimating through $Q^{\pi_{\theta}, \gamma}(s, a)$.</li>
-                </ul>
-            </div>
-
-            <!-- ################################################################## -->
-            <div class="step slide">
-                <h1 class="nt">Advantage Estimates</h1>
-                \begin{align*}
-                \nabla_{\theta}V^{\pi_{\theta}, \gamma}(s_0)
-                &= \sum_s\sum_{t = 0}^{\infty}\gamma^t\mu_t(s;s_0)
-                \left(\sum_{a}\nabla_{\theta}\pi_{\theta}(a|s) \cdot Q^{\pi_{\theta}, \gamma}(s, a) - 0\right)\\
-                \text{(why?)}&= \sum_s\sum_{t = 0}^{\infty}\gamma^t\mu_t(s;s_0)
-                \left(\sum_{a}\nabla_{\theta}\pi_{\theta}(a|s) \cdot Q^{\pi_{\theta}, \gamma}(s, a) - \sum_{a}\nabla_{\theta}\pi_{\theta}(a|s)\cdot V^{\pi_{\theta}, \gamma}(s)\right)\\
-                &= \sum_s\sum_{t = 0}^{\infty}\gamma^t\mu_t(s;s_0)
-                \sum_{a}\nabla_{\theta}\pi_{\theta}(a|s) \cdot \left(Q^{\pi_{\theta}, \gamma}(s, a) - V^{\pi_{\theta}, \gamma}(s)\right).\\
-                &= \sum_s\sum_{t = 0}^{\infty}\gamma^t\mu_t(s;s_0)\sum_{a}\nabla_{\theta}\ln\left(\pi_{\theta}(a|s)\right) \cdot \pi_{\theta}(a|s) A^{\pi_{\theta}, \gamma}(s, a)\\
-                &=\mathbb{E}\left[\sum_{t = 0}^{\infty}\gamma^t\nabla_{\theta}\ln\left(\pi_{\theta}(a_t|s_t)\right)\cdot A^{\pi_{\theta}, \gamma}(s_t, a_t)\right]
-                \end{align*}
-                <ul>
-                    <li>Q: Does this form look reasonable? Compare it with the update for REINFORCE.</li>
-                </ul>
-            </div>
-
-            <!-- ################################################################### -->
-            <div class="step slide">
-                <h1 class="nt">Advantage Estimates (Cont'd)</h1>
-                <ul>
-                    <li>
-                        Recall that we said $Q^{\pi_{\theta}, \gamma}(s_t, a_t)$ can be estimated by $\sum_{h = 0}^{\infty}\alpha_h e_{t,h}$ in general, where
-                        \[
-                        \left\{
-                        \aligned{
-                        &e_{t,h} = \sum_{i = t}^{t+h} \gamma^{i - t}\cdot r_i + \gamma^{h + 1}\cdot v_{\omega}(s_{t+h+1})\\
-                        &\sum_{i = 0}^{\infty} \alpha_i = 1
-                        }
-                        \right.
-                        \]
-                    </li>
-                    <li>The very popular <b>General Advantage Estimate</b> (GAE) estimates the advantage in the same fashion and it chooses $\alpha_i$ to be proportional to $\lambda^i$, where $\lambda\in[0, 1]$.</li>
-                </ul>
-            </div>
-
-            <!-- ################################################################### -->
-            <div class="step slide">
-                <h1 class="nt">Advantage Estimates (Cont'd)</h1>
-                <ul>
-                    <li>Define $\delta_{t,h}=e_{t,h}-v_{\omega}(s_{t})=\sum_{i = t}^{t+h} \gamma^{i - t}\cdot r_i + \gamma^{h + 1}\cdot v_{\omega}(s_{t+h+1}) - v_{\omega}(s_{t})$ </li>
-                    <li>The General Advantage Estimate (GAE) estimates $A^{\pi_{\theta}, \gamma}(s_t, a_t)$ by
-                        \begin{align*}
-                        \hat{A}_{\text{GAE}(\lambda)}^{\pi_{\theta}, \gamma}(s_t, a_t) &= (1 - \lambda)\sum_{h = 0}^{\infty} \lambda^h\delta_{t,h}\\
-                        (\text{calculation omitted, HW}) &=\sum_{h = 0}^{\infty}(\gamma\lambda)^{h} \delta_{t+h, 0}
-                        \end{align*}
-                    </li>
-                    <li>
-                        Define $0^0 = 1$, $\hat{A}_{\text{GAE}(0)}^{\pi_{\theta}, \gamma}(s_t, a_t) = r_t + \gamma v_{\omega}(s_{t + 1}) - v_{\omega}(s_{t}).$
-                    </li>
-                    <li>
-                        We also have $\hat{A}_{\text{GAE}(1)}^{\pi_{\theta}, \gamma}(s_t, a_t) = \sum_{h = 0}^{\infty}\gamma^{h} r_{t+h} - v_{\omega}(s_t). $
-                    </li>
-                    <li>
-                        We leave the proofs to homework.
-                    </li>
-                    <li>Q: How to interpret the role of $\lambda$?</li>
-                </ul>
-            </div>
-
-            <!-- ################################################################### -->
-            <div class="step slide">
-                <h1 class="et">Incremental Monte Carlo <br/>Value Function Estimation</h1>
-                <ul>
-                    <li>Recall that our plan was to have a value network $v_{\omega}(s)$ to <b>memorize</b> the estimates of $V^{\pi_{\theta}, \gamma}(s)$ during the training. 
-                    </li>
-                    <li>In practice, certain variants of the incremental Monte-Carlo method will be used to update $v_{\omega}(s)$
-                        <ul>
-                            <li>e.g., in <a href="https://arxiv.org/pdf/1506.02438.pdf">Sec 5 of High-Dimensional Continuous Control Using Generalized Advantage Estimation</a>,
-                                \[
-                                \aligned{
-                                &\text{minimize}_{\omega} && \sum_{n=1}^N\|v_{\omega}(s_n)-\hat{V}_n\|^2\\
-                                &\text{subject to} && \frac{1}{N}\sum_{n=1}^N\frac{\|v_{\omega}(s_n)-v_{\omega_{old}}(s_n)\|^2}{2\sigma^2}\le \epsilon
-                                }
-                                \]
-                                where $\hat{V}_t=\sum_{h=0}^{\infty}\gamma^h r_{t+h}$ is the discounted sum of rewards, and $n$ indexes over all timestamps in a batch of trajectories.
-                            </li>
-                        </ul>
-                    </li>
-                    <li>Note that we do not need a replay buffer to estimate $v_{\omega}(s)$.</li>
-                </ul>
-            </div>
-
-
-            <div class="step slide">
-                <h1 class="nt">Some Additional Information</h1>
-                Given any advantage estimate $\hat{A}^{\pi_{\theta}, \gamma}(s_t, a_t)$, we can estimate the policy gradient by
-                \begin{align*}
-                \hat{\nabla}_{\theta}V^{\pi_{\theta}, \gamma}(s_0) 
-                =\mathbb{E}\left[\sum_{t = 0}^{\infty}\gamma^t\nabla_{\theta}\ln\left(\pi_{\theta}(a_t|s_t)\right)\cdot \hat{A}^{\pi_{\theta}, \gamma}(s_t, a_t)\right].
-                \end{align*}
-                However, in most implementations, people simply use
-                \begin{align*}
-                \hat{\nabla}_{\theta}V^{\pi_{\theta}, \gamma}(s_0) 
-                =\mathbb{E}\left[\sum_{t = 0}^{\infty}\nabla_{\theta}\ln\left(\pi_{\theta}(a_t|s_t)\right)\cdot \hat{A}^{\pi_{\theta}, \gamma}(s_t, a_t)\right].
-                \end{align*}
             </div>
 
             <!-- ################################################################### -->
