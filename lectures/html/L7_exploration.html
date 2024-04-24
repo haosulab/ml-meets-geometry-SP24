@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>L7 - Exploration</title>
+    <meta name="description" content="" />
+    <meta name="author" content="Hao Su" />
+    <link rel="stylesheet" href="../extras/highlight/styles/github.css">
+    <link rel="stylesheet" href="../extras/mermaid/mermaid.forest.css">
+    <link href="../css/impress-common.css" rel="stylesheet" />
+    <link href="css/classic-slides.css" rel="stylesheet" />
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/viz.js/1.7.1/viz.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/vs.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+        integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
+        crossorigin="anonymous"></script>
+    <style>
+        mark.red {
+            color: #ff0000;
+            background: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+    <div class="fallback-message">
+        <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a
+            simplified version of this presentation.</p>
+        <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+    </div>
+    <div id="latex-macros"></div>
+    <script src="./latex_macros.js"></script>
+    <div id="impress" data-width="1920" data-height="1080" data-max-scale="3" data-min-scale="0" data-perspective="1000"
+        data-transition-duration="0">
+        <div class="step slide title" data-x="-2200" data-y="-3000" id="title">
+            <h1 class="nt">Exploration</h1>
+            <h2>Stone Tao
+                <p style="font-size:30px">(slides prepared by Hao Su, Quan Vuong, Tongzhou Mu, Zhiao Huang, and Stone Tao)</p>
+            </h2>
+            <h3>Spring, 2024</h3>
+            <div class="ack">Some contents are based on <a
+                    href="https://www.cambridge.org/core/books/bandit-algorithms/8E39FD004E6CE036680F90DD0C6F09FC">Bandit
+                    Algorithms</a> from Dr. Tor Lattimore and Prof. Csaba Szepesvári, and <a
+                    href="https://www.davidsilver.uk/teaching/">COMPM050/COMPGI13</a> taught at UCL by Prof. David
+                Silver.</div>
+        </div>
+
+        <div id="toc" class="step slide" data-rel-x="2200" data-rel-y="0">
+            <h1 class="nt">Agenda</h1>
+            <ul class="large" id="agenda"></ul>
+            click to jump to the section.
+        </div>
+        <!-- ######################### New Section ############################# -->
+        <div class="step slide separator">
+            <h1 class="nt">Exploration versus Exploitation</h1>
+        </div>
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Motivation to Explore vs Exploit</h1>
+            <ul>
+                <li>Suppose you go to the same old restauraunt you have been going to for a decade.</li>
+                <li>If there is a new restauraunt, do you go and try it? Or do you stick to your priors</li>
+            </ul>
+            <ul class="substep">
+                <li>New restauraunt is always a risk (unknown food quality, service etc.) </li>
+                <li>But without going to the new restauraunt you never know! How do we balance this?</li>
+            </ul>
+            <img src="./SP24_L7/exploration_vs_exploitation.png" alt="" width="50%">
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Why Exploration is Difficult</h1>
+            <ul>
+                <li>Curse of Dimensionality:
+                    <ul>
+                        <li>It is common for the state space to be high-dimensional (e.g., image input, multi-joint
+                            arms) </li>
+                        <li>The volume of effective state space grows <i>exponentially</i> w.r.t. dimension! </li>
+                    </ul>
+                </li>
+                <li>Even exploration in low-dimensional space may be tricky when there are "alleys". Low probability of going through small gaps to then explore other states:</li>
+                <img src="./SP24_L7/simple_2d_map.png" alt="" width="30%" />
+            </ul>
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Exploration to Escape Local Minima in Reward</h1>
+            <ul>
+                <li>Suppose your dense reward for the environment below is euclidean distance to the flag. The return maximizing sequence of actions are to go through the samll gap and reach the flag (global minimum)</li>
+                <li>But you will never know to do that unless you explore, and with this dense reward function your trained agent will likely headbutt into the blue wall (local minimum)</li>
+                <img src="./SP24_L7/simple_2d_map_headbutt.png" alt="" width="30%" />
+            </ul>
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Knowing what to explore is critical</h1>
+            <ul>
+                <li>Noisy TV Problem: Imagine an agent encouraged to seek new states to explore. It receives a visual image of what it sees at the moment and needs to explore a maze
+                </li>
+                <li>If there was a noisy TV and the agent stumbled upon it, what would happen?</li>
+            </ul>
+            <ul class="substep">
+                <li >The agent will become a couch potato and stare at the TV all day.</li>
+                <img src="./SP24_L7/the-noisy-TV-problem.gif" alt="" width="100%">
+            </ul>
+        </div>
+
+
+        <div class="step slide">
+            <h1 class="nt">Balancing Exploration and Exploitation</h1>
+            <ul>
+                <li>Goal: select actions to maximize expected return.</li>
+                <li>Problem:
+                    <ul>
+                        <li>Actions may have long-term consequences (Credit assignment problem)</li>
+                        <li>Reward may be delayed (E.g. sparse rewards)</li>
+
+                    </ul>
+                </li>
+                <li>It may be better to sacrifice immediate reward to gain more long-term reward. </li>
+                <li>A high performing policy trade-offs between exploration and exploitation:
+                    <ul>
+                        <li>Exploration: take action to learn more about the MDP.</li>
+                        <li>Exploitation: take the action currently <b>believed</b> to maximize expected return.</li>
+                    </ul>
+                </li>
+                <!--
+                   -<li>Example in chess:
+                   -    <ul>
+                   -        <li>Exploration: play moves to understand opponent strategy.</li>
+                   -        <li>Exploitation: play best moves given current understand of opponent strategy.</li>
+                   -    </ul>
+                   -</li>
+                   -->
+            </ul>
+        </div>
+
+        <!-- ######################### New Section ############################# -->
+        <div class="step slide separator">
+            <h1 class="nt">Multi-Armed Bandits</h1>
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Multi-Armed Bandits</h1>
+            <ul>
+                <li>They are a little bit like a twist on slot machines</li>
+                <li>In this game you have a few slots and can choose a slot to pull. You then receive a reward sampled from an unknown distribution</li>
+            </ul>
+            <div style="display: flex">
+                <img src="./SP24_L7/slots.png" alt="" width="30%" style="display:inline-block">
+            <img src="./SP24_L7/slot-dist.png" alt="" width="30%" style="display:inline-block">
+            </div>
+        </div>
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Multi-Armed Bandits</h1>
+            <ul>
+                <li> A multi-armed bandit is a tuple of action space and reward function $(\mathcal{A}, \mathcal{R})$.
+                </li>
+                <li>$\mathcal{A}$ is a finite and known set of actions.</li>
+                <li>$\mathcal{R}$ is a function mapping an action to an unknown probability distribution over rewards.
+                    <ul>
+                        <li>$\mathcal{R}(a) = \text{Pr} \left[ R | a \right] $</li>
+                    </ul>
+                </li>
+                <!-- <li>
+                    At each step $t$, the agent selects an action $A_t$, the environment generates a reward $R_t \sim
+                    Pr[R|A_t]$
+                    <ul>
+                    <li>Note that $A_t$ can be a random variable even if the agent is deterministic.</li>
+                    <li>For example: $A_t = \pi(A_1, R_1, A_2, R_2, \ldots, A_{t-1}, R_{t-1})$.</li>
+                    </ul>
+                    </li> -->
+                <li>
+                    At each step $t$, the agent selects an action $a_t$, the environment generates a reward $r_t \sim
+                    Pr[R|a_t]$.
+                    <ul>
+                        <li>Note that $a_t$ can be realization of a random variable even if the policy is a
+                            deterministic function of input.
+                        </li>
+                        <!--
+                               -<li>For example: $a_t = \pi(A_1, R_1, A_2, R_2, \ldots, A_{t-1}, R_{t-1})$.</li>
+                               -->
+                    </ul>
+                </li>
+                <li>
+                    Goal is to maximize cumulative reward $\sum_{t=1}^T r_t$
+                </li>
+                <img src="./SP24_L7/slot-dist.png" alt="" width="30%">
+                </li>
+            </ul>
+        </div>
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="vt">Regret</h1>
+            <ul>
+                <li>Formal statement about the performance of a policy needs to be made relative to the optimal policy.
+                </li>
+                <li>We therefore introduce the notion of <b>regret</b>.</li>
+                <li>In general you want to <strong>minimize</strong> regret</li>
+                <li>Think of regret as a form of opportunity cost. The cost of not taking a different action relative to what you did take</li>
+                <li>Examples: Investing in stock A vs stock B, taking a trip to Boston vs a trip to New York etc.</li>
+            </ul>
+        </div>
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="et">Regret (Formalized)</h1>
+            <ul>
+                <li>The action-value of action $a$ is its expected reward:</li>
+                \[
+                Q(a) = \mathbb{E}_{R}[ R | a ]
+                \]
+                <li>
+                    The optimal value $V^*$ is the action-value of the optimal action.</li>
+                \[
+                V^* = Q(a^*) = \operatorname{max}_{a \in \mathcal{A}} Q(a)
+                \]
+                <li>The regret of a policy $A_t\sim\pi_t$, where $A_t$ is the distribution of actions the policy generates at time $t$, is the gap between the optimal value and the
+                    expected action-value.</li>
+                \[
+                l_t = V^* - \mathbb{E}_{A_t} \left[ Q(A_t) \right] = \mathbb{E}_{A_t} \left[ V^* - Q(A_t) \right]
+                \]
+                <li>The total regret up to time $T$ is the sum of the timestep regret up to time $T$.</li>
+                \[
+                L_T = \sum_{t=1}^T \mathbb{E}_{A_t} \left[ V^* - Q(A_t) \right] = \mathbb{E}_{A_t} \left[ \sum_{t=1}^T[
+                V^* - Q(A_t)] \right]
+                \]
+                <li>The total regret is sometimes referred to as regret.</li>
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Total Regret Decomposition</h1>
+            <ul>
+                <li>The count $N_T(a)$ is the number of times action $a$ was chosen up to time $T$.</li>
+                \[
+                N_T(a) = \sum_{t=1}^T 1_{A_t = a}
+                \]
+                <li>The gap $\Delta_a$ is the difference in value between action $a$ and the optimal action $a^*$.</li>
+                \[
+                \Delta_a = V^* - Q(a)=V^*-\mathbb{E}_{R} [R|a]
+                \]
+                <li>The total regret is a function of gaps and counts.</li>
+                \[
+                \begin{aligned}
+                L_{T} =\mathbb{E}_{A_t}\left[\sum_{t=1}^{T} [V^{*}-Q\left(A_{t}\right)]\right]
+                =\mathbb{E}_{A_t}\left[\sum_{t=1}^{T} \sum_{a\in\mathcal{A}}
+                1_{A_t=a}[V^{*}-Q\left(a\right)]\right]
+                =\sum_{a \in \mathcal{A}}
+                \mathbb{E}_{a\sim \pi}\left[N_{T}(a)\right] \Delta_{a}
+                \end{aligned}
+                \]
+                </li>
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Total Regret Decomposition</h1>
+            \[
+            \begin{aligned}
+            L_{T} =\sum_{a \in \mathcal{A}}
+            \mathbb{E}_{a\sim \pi}\left[N_{T}(a)\right] \Delta_{a}
+            \end{aligned}
+            \]
+            <ul>
+                <li>Basic result widely used in regret analysis of bandit algorithms. </li>
+                <li>Interpretation? What would an ideal decision making agent do to minimize total regret?</li>
+            </ul>
+            <ul class="substep">
+                <li>Interpretation: a good agent picks actions with large gaps less frequently.</li>
+                <li>Issue: The gap is not available, since it requires knowing the optimal value $V^*$.</li>
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="et">Desirable Total Regret Behavior</h1>
+            <img src="./SP24_L7/regret_as_function_of_time.png" width="1000" height="650"></img>
+
+            <ul>
+                <li>What can you infer from this figure?</li>
+            </ul>
+            <ul class="substep">
+                <li>Ideally, for the total regret, over time:
+                    <ul>
+                        <li>the rate of increase quickly decreases</li>
+                        <li>converge to a small value</li>
+                    </ul>
+                </li>
+                <li>
+                    For example, decaying $\epsilon$-greedy (to introduce soon) has logarithmic asymptotic total regret.
+                </li>
+            </ul>
+        </div>
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Greedy and $\epsilon$-Greedy</h1>
+            <ul>
+                <li>Estimate the value of each action by Monte-Carlo estimation:</li>
+                \[
+                \hat{Q}_{t}(a)=\frac{1}{N_{t}(a)} \sum_{t'=1}^{t} r_{t'} 1_{A_{t'}=a}
+                \]
+                <li>Greedy algorithm selects action with the highest estimated value:</li>
+                \[
+                a_{t} = \underset{a \in \mathcal{A}} {\operatorname{argmax}} \hat{Q}_{t}(a)
+                \]
+                <li>$\epsilon$-Greedy algorithm selects a random action with probability $\epsilon$.</li>
+                <li>Both algorithms have linear total regret because Greedy algorithm never explores and
+                    $\epsilon$-Greedy algorithm forever explores.</li>
+                <li>How to strike a balance? Can we achieve sublinear total regret?</li>
+                <!-- 
+                    Only a rhetorical question to motivate next set of slides
+                -->
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="vt">Decaying $\epsilon$-Greedy Algorithm</h1>
+            <ul>
+                <li>By decaying parameter $\epsilon$ in $\epsilon$-Greedy, it is possible to have logarithmic asymptotic
+                    total regret.</li>
+                <li>Intuitively we are saying to be more confident in our action value estimator Q over time.</li>
+                <li>Problem: the decaying schedule requires knowing the gap $\Delta_a = V^* - Q(a), \forall a \in
+                    \mathcal{A}$, which is not available.</li>
+                <li>How to achieve logarithmic asymptotic total regret without using intractable terms?</li>
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="et">The Principle of Optimism in the Face of Uncertainty</h1>
+            <div class="row" style="flex: 0%">
+                <img src="./SP24_L7/optimism_before.png" width="900" height="600" />
+            </div>
+            <ul>
+
+                <li>Given $3$ actions $a_1, a_2, a_3$ with the estimated values as shown.</li>
+                <li>Which action should the policy pick to find the optimal action?</li>
+                <li>The more uncertain the value estimate of an action is, the more important to take that
+                    action.</li>
+                <li>In this case, actions $a_1$ and $a_2$ have:
+                    <ul>
+                        <li>more uncertain value estimates than $a_3$.</li>
+                        <li>non-trivial probability of having higher value than $a_3$.</li>
+                    </ul>
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Upper Confidence Bound</h1>
+            <ul>
+                <li>
+                    This principle is operationalized into upper confidence for each action value:
+                    <ul>
+                        <li>For each action $a$, estimate an upper confidence $U_t(a)$.</li>
+                        <li>Such that $Q(a) \leq \hat{Q}_{t}(a)+U_{t}(a)$ with high probability.</li>
+                    </ul>
+                </li>
+                <li>$\hat{Q}_{t}(a)+U_{t}(a)$ is called the Upper Confidence Bound (UCB) of action $a$.</li>
+                <li>
+                    Select action maximizing the Upper Confidence Bound.
+                </li>
+                \[
+                a_{t}=\underset{a \in \mathcal{A}}{\operatorname{argmax}} \hat{Q}_{t}(a) + U_{t}(a)
+                \]
+                <!-- <li>The upper confidence depends on the number of times an action $a$ has been selected
+                    <ul>
+                    <li></li>
+                    </ul>
+                    </li> -->
+            </ul>
+        </div>
+
+        <div class="step slide">
+            <h1 class="nt">Deriving UCB1 Algorithm</h1>
+            <ul>
+                <li>Recall the (weak) law of large numbers: For any positive number $\epsilon$
+                    \[
+                    \lim _{n\to \infty }\Pr \!\left(\,|{\overline {X}}_{n}-\mu |>\varepsilon \,\right)=0
+                    \]
+                </li>
+                <li>Interpretation: Empirical average approaches expectation for infinite samples.</li>
+                <li>Given finite samples, how far would the empirical average derivate from the expectation?</li>
+            </ul>
+        </div>
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Deriving UCB1 Algorithm</h1>
+            <ul>
+                <li>Hoeffding's inequality: Let $X_{1}, \ldots, X_{t}$ be i.i.d. random variables in $[0,1]$, and let
+                    $\bar{X}_{t}=\frac{1}{t} \sum_{t'=1}^{t} X_{t'}$ be the sample mean. Then:
+                    $$
+                    \mathbb{P}\left[\mathbb{E}[X]>\bar{X}_{t}+u\right] \leq e^{-2 t u^{2}}
+                    $$
+                </li>
+                <li>Applying the inequality to the value estimates of the actions:</li>
+                \[
+                \mathbb{P}\left[Q(a)>\hat{Q}_{t}(a) + U_{t}(a)\right] \leq e^{-2 N_{t}(a) U_{t}(a)^{2}},\ \forall
+                a\in\mathcal{A}
+                \]
+                <li>Assume we know $r_{max}, r_{min}$ for each action and can scale the reward accordingly such that $r
+                    \in [0, 1]$.</li>
+                <li>Interpretation: $\left[-\infty, \hat{Q}_t(a)+U_{t}(a)\right]$ is the interval that $Q(a)$ will fall
+                    in with high probability.</li>
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Deriving UCB1 Algorithm</h1>
+            \[\mathbb{P}\left[Q(a)>\hat{Q}_{t}(a) + U_{t}(a)\right] \leq e^{-2 N_{t}(a) U_{t}(a)^{2}}\]
+            <ul>
+                <li>We are interested in finding $U(t)$ so that there is only a small chance that the interval does not
+                    cover the true $Q(a)$. </li>
+                <li>If the upper bound of this chance is already below $p$, then the interval must be wide enough: </li>
+                \begin{aligned}
+                e^{-2 N_{t}(a) U_{t}(a)^{2}} &\le p \\
+                \Longrightarrow U_{t}(a) &\ge \sqrt{\frac{-\log p}{2 N_{t}(a)}}
+                \end{aligned}
+                <li>Interpretation: $Q(a)$ falls in $\hat{Q}_t(a)+U_{t}(a)$ with probability larger than $1-p$.</li>
+                <li>If we would the interval to be tight, then we pick the smallest possible $U_t(a)$.</li>
+                <li>Therefore, we take $\hat{Q}_t(a)+\sqrt{\frac{-\log p}{2 N_{t}(a)}}$ as an optimistic estimation of
+                    $Q_t(a)$.</li>
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Deriving UCB1 Algorithm</h1>
+            <ul>
+                <li>We take $\hat{Q}_t(a)+\sqrt{\frac{-\log p}{2 N_{t}(a)}}$ as an <i>optimistic</i> estimation of
+                    $Q_t(a)$.</li>
+                <li>To make the numbers concrete, let us assume a decaying $p$ over time: $p = \dfrac{1}{t^4}$. We pick $t^4$ because it eliminates the 2 in the denominator.</li>
+                <li>This leads to the UCB1 algorithm:</li>
+                \[
+                a_{t}=\underset{a \in \mathcal{A}}{\operatorname{argmax}} \hat{Q}_{t}(a) + \sqrt{\frac{2 \log
+                t}{N_{t}(a)}}
+                \]
+                <li>Interpretation?</li>
+                <ul class="substep">
+                    <li>Interpretation: $N_t(a)$ serves as a proxy for how uncertain the algorithm</li>
+                    <li>Large $N_t(a)$ $\Longrightarrow$ the policy has taken $N_t(a)$ many times $\Longrightarrow$ Less uncertain value estimate.</li>
+                    <li>Small $N_t(a)$ $\Longrightarrow$ the policy has not taken $N_t(a)$ many times $\Longrightarrow$ More uncertain value estimate.</li>
+                    <li>Intuitively we already see the upper bound is logarithmic in time</li>
+                </ul>
+
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="vt">Theoretical Properties of UCB1 Algorithm</h1>
+            <ul>
+                <li>For any timestep $T$, the total regret of UCB1 is at most <i>logarithmic</i> in the number of timestep $T$:
+                \[
+                L_T \leq 8 \ln
+                T \underbrace{\left[\sum_{a: \Delta_{a}>0}\left(\frac{1}{\Delta_{a}}\right)\right]}_{const}+\underbrace{\left(1+\frac{\pi^{2}}{3}\right)\left(\sum_{a} \Delta_{a}\right)}_{const}
+                \]
+                <!-- <li>Possible to extend the Principle of Optimism in the Face of Uncertainty to the full MDP case and
+                    deep RL [1].
+                    </li>
+                    <div class="ack">[1] Better Exploration with Optimistic Actor Critic. Ciosek, Vuong, Loftin, Hofmann.
+                    NeuRIPS 2019.</div> -->
+                </li>
+                <div class="rby">Read by Yourself</div>
+                <div class="ack">Finite-time Analysis of the Multiarmed Bandit Problem. Auer et al.</div>
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <!-- <div class="step slide">
+            <h1 class="et">Limitation of Exact Count-based Methods</h1>
+            <ul>
+                \[
+                a_{t}=\underset{a \in \mathcal{A}}{\operatorname{argmax}}\ \hat{Q}_{t}(a) + \sqrt{\frac{2 \log
+                t}{N_{t}(a)}}
+                \]
+                <li>The upper confidence bound is an inverse function of the square root of the count $N_t(a)$.</li>
+                <li>Possible to extend count-based methods to tabular MDP:
+                    <ul>
+                        <li>Either uses state visitation count $N_{t}(s)$ or state-action visitation count $N_{t}(s, a)$
+                        </li>
+                        <li>The state visitation count is essential for many theoretical analysis of exploration</li>
+                    </ul>
+                </li>
+                <li>However, it is only possible to compute the exact count for low-dim state space.</li>
+                <li>For high-dim state space (such as images):
+                    <ul>
+                        <li>Most states will have count $0$</li>
+                        <li>Most states will be equally novel by exact count metric</li>
+                        <li>But the agent cannot visit all states due to high-dim nature of state space</li>
+                    </ul>
+                </li>
+                <li>We need an approximate count that generalizes across states:
+                    <ul>
+                        <li>A state should have high approximated count if it is similar to previously visited states
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div> -->
+        <div class="step slide separator">
+            <h1 class="nt">Intrinsic Rewards</h1>
+        </div>
+        <div class="step slide">
+            <h1 class="nt">The Perspective of Intrinsic Rewards</h1>
+            <ul>
+                <li>UCB1 chooses actions by estimating an upper confidence for each action value:
+                    \[
+                    a_{t}=\underset{a \in \mathcal{A}}{\operatorname{argmax}} \hat{Q}_{t}(a) + \sqrt{\frac{2 \log
+                    t}{N_{t}(a)}}
+                    \]
+                </li>
+                <li>Since we have added a term to $\hat{Q}$, it can be viewed as a reward! We are now encouraging the agent to take actions with the highest upper confidence bounds</li>
+                <li>Intrinsic Reward is essentially adding a intrinsic term $i_t$ to the original environment reward $e_t$, giving $r_t = e_t + i_t$ </li>
+                <!-- <li>Pseudo-count methods also add a manually designed reward term to the MDP reward function</li> -->
+            </ul>
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Count Based Exploration</h1>
+            <ul>
+                <li>For small discrete state spaces, we can efficiently count how many times we have visited a state $s$ using a map, let it be $N(s): \mathcal{S} \to \mathbb{Z}$</li>
+                <li>What's a simple intrinsic reward you can derive using $N(s)$?</li>
+            </ul>
+            <ul class="substep">
+                <li>$r_i=\frac{1}{N(s)}, \frac{1}{N(s)^2}, ...$, basically any function of $N(s)$ that gets smaller as $N(s)$ increases.</li>
+            </ul>
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Issues with Count Based Exploration</h1>
+            <ul>
+                <li>Impossible for large discrete state spaces. For most $s \in \mathcal{S}$, $N(s)$ is likely 0. For continuous this is impossible</li>
+                <li>Very unlikely for agent to visit every state.</li>
+                <li>Hence we often look towards pseudo counts, approximations of the actual count.</li>
+                <li>Can you think of some simple ways to approximate counts in high dim discrete state spaces? in continuous state spaces?</li>
+            </ul>
+            <ul class="substep">
+                <li>Counting via Hashing</li>
+                <li>Counting via Density Models</li>
+            </ul>
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Counting via Hashing</h1>
+            <ul>
+                <li>Come up with some hash function $h : \mathcal{S} \to \mathbb{Z}^k$</li>
+                <li>A sort of dimensionality reduction / feature engineering problem</li>
+            </ul>
+            <div class="credit"><a href="https://arxiv.org/abs/1611.04717">Tang et. al, # Exploration: A Study of Count-Based Exploration for Deep Reinforcement Learning</a></div>
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Counting via Hashing: SimHash</h1>
+            <ul>
+                <li>Let $A \in \mathbb{R}^{k \times d}$ with each entry drawn i.i.d from a Gaussian. $g: \mathcal{S} \to \mathbb{R}^{D}$ is a preprocessing function</li>
+                <li>$h(s) = \text{sgn}(A g(s)) \in \{-1, 1\}^k$, hashing state $s$ to a sequence of $k$ binary values.</li>
+                <li>Drawbacks: Empirically doesn't work for high dimensional observations like images. Deep learning has shown heuristics like simple matrix mappings perform worse than deep neural nets.</li>
+            </ul>
+            <div class="credit"><a href="https://arxiv.org/abs/1611.04717">Tang et. al, # Exploration: A Study of Count-Based Exploration for Deep Reinforcement Learning</a></div>
+            <div class="credit"><a href="https://lilianweng.github.io/posts/2020-06-07-exploration-drl/">Lilliang Weng, Exploration Strategies in Deep Reinforcement Learning</a></div> 
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Counting via Hashing: Autoencoders</h1>
+            <ul>
+                <li>Autoencoder: Sequence of layers that decrease latent size then increase latent size to reconstruct input</li>
+                <li>Trained with a standard reconstruction loss as well as a special augmented loss. $p(s_n)$ is AE output. </li>
+                <li>Modifies Autoencoder to include an additional dense layer with K outputs. This dense layer is used for reconstructing the $k$ length binary code from latent state.</li>
+                <li>$\mathcal{L}(\{s_n\}_{n=1}^N) = \underbrace{-\frac{1}{N} \sum_{n=1}^N \log p(s_n)}_\text{reconstruction loss} + \underbrace{\frac{1}{N} \frac{\lambda}{K} \sum_{n=1}^N\sum_{i=1}^k \min \big \{ (1-b_i(s_n))^2, b_i(s_n)^2 \big\}}_\text{sigmoid activation being closer to binary}$</li>
+                <!-- <li>Intuition for autoencoder: Effectively mapping high dimensional state to lower dimensions (a code), and then decoding that into a binary </li> -->
+
+                <img src="./SP24_L7/autoencoder.png" width="30%">
+            </ul>
+            <div class="credit"><a href="https://arxiv.org/abs/1611.04717">Tang et. al, # Exploration: A Study of Count-Based Exploration for Deep Reinforcement Learning</a></div>
+            <div class="credit"><a href="https://lilianweng.github.io/posts/2020-06-07-exploration-drl/">Lilliang Weng, Exploration Strategies in Deep Reinforcement Learning</a></div> 
+        </div>
+
+        <div class="step slide">
+            <h1 class="nt">Counting via Density Estimation</h1>
+            <ul>
+                <li>Consider a random variable sampled from an arbitrary distribution:
+                    \[
+                    X \sim \mathbb{P}(\cdot)
+                    \]
+                </li>
+                <li>Given samples from the distribution:
+                    \[
+                    \{x_1, x_2, \ldots, x_n\} = x_{1:n}
+                    \]
+                </li>
+                <li>Given an arbitrary sample $x$, the <i>density estimation problem</i> queries the probability of $x$:
+                    \[
+                    \mathbb{P}(x | x_{1:n}) \approx \mathbb{P}(x)
+                    \]
+                </li>
+            </ul>
+            <div class="credit"><a href="https://arxiv.org/pdf/1606.01868.pdf">Bellmare et. al, Unifying Count-Based Exploration and Intrinsic Motivation</a></div>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Density Estimation over State Space</h1>
+            <ul>
+                <li>Consider an MDP $\mathcal{M}$ with a <i>countable</i> state space $\mathcal{S}$, policy $\pi$, denote a sequence of $t$ states by $s_{1:t}$.</li>
+                <li>Given $s_{1:t} \sim (\mathcal{M}, \pi)$, a density model over the state space $\mathcal{S}$ is:
+                    \[
+                    \rho_t(s) = \rho(s; s_{1:t}) \approx \mathbb{P}(s | \mathcal{M}, \pi)
+                    \]
+                    <ul>
+                        <li>a good density model approximates $\mathbb{P}(s | \mathcal{M}, \pi)$ well</li>
+                    </ul>
+                </li>
+                <li>The empirical density estimation is:
+                            \[
+                            \rho_{t}(s) = \frac{N_{t}(s)}{t}
+                            \]
+                </li>
+                <li>A Gaussian Mixture Model is one density model that can be used which is updated with new data.</li>
+            </ul>
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Density Estimation over State Space</h1>
+            <ul>
+                <li>Consider an MDP $\mathcal{M}$ with a <i>countable</i> state space $\mathcal{S}$, policy $\pi$, denote a sequence of $t$ states by $s_{1:t}$.</li>
+                <li>Given $s_{1:t} \sim (\mathcal{M}, \pi)$, a density model over the state space $\mathcal{S}$ is:
+                    \[
+                    \rho_t(s) = \rho(s; s_{1:t}) \approx \mathbb{P}(s | \mathcal{M}, \pi)
+                    \]
+                    <ul>
+                        <li>a good density model approximates $\mathbb{P}(s | \mathcal{M}, \pi)$ well</li>
+                    </ul>
+                </li>
+                <li>Tehe empirical density estimation is:
+                            \[
+                            \rho_{t}(s) = \frac{N_{t}(s)}{t}
+                            \]
+                </li>
+                <li>A Gaussian Mixture Model is one density model that can be used which is updated with new data.</li>
+            </ul>
+        </div>
+        <div class="step slide">
+            <h1 class="nt">Quick Refresher on GMM</h1>
+            <ul>
+                <li>Gaussian Mixture Model Training Process initializes $k$ different Gaussians and fits them to the data. Suppose for example our state space has 2 dimensions below.</li>
+                <li>The GMM is our density model and generates probabilities of seeing some input $p_t(s)$</li>
+                <li>Typically optimized via Expectation Maximization (EM)</li>
+                <img src="./SP24_L7/gaussian_mixture_model.gif"/>
+                
+            </ul>
+            <div class="ack">Gif from <a href="https://brilliant.org/wiki/gaussian-mixture-model/">https://brilliant.org/wiki/gaussian-mixture-model/</a>, which is also a easy resource to learn how EM works.</div>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Computing Pseudo-Count from Density Model</h1>
+            We need to estimate a "pseudo-count" at any state $s$ using a density model $\rho_t(s)$ from visited states $s_{1:t}$. The purpose of the work below is to better "regulate" the density model and make it possible to get pseudo-counts from any density model.
+            <ul>
+                <li>First, given $s_{1:t}$, we can estimate the density of some state $s$ by 
+                    \[
+                    \rho_t(s)=\rho(s;s_{1:t})
+                    \]
+                </li>
+                <li>Next, we "imagine" that next step we will obtain one more sample of $s$, i.e., the visited state sequence becomes $\{s_{1:t}, s\}$. Then, the density of $s$ will be
+                    \[
+                    \rho_{t+1}(s) = \rho( s; s_{1:t}, s )
+                    \]
+                </li>
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Computing Pseudo-Count from Density Model</h1>
+            <ul>
+                <li>
+                    According to the empirical density estimation formula, we "expect" that the <i>pseudo count</i> of state visitation $\hat{N}_t$ to satisify
+                    \[
+                    \rho_{t}(s) = \frac{\hat{N}_{t}(s)}{t}, \quad \quad \rho_{t+1}(s) = \frac{\hat{N}_{t}(s)+1}{t+1}
+                    \]
+                </li>
+                <li>
+                    Cancel $t$ from the equations, and we can solve $\hat{N}_t(s)$:
+                    \[
+                    \hat{N}_{t}(s)=\frac{\rho_{t}(s)\left(1-\rho_{t+1}(s)\right)}{\rho_{t+1}(s)-\rho_{t}(s)}
+                    \]
+                </li>
+                <li>
+                    The new MDP reward function with hyperparameters $\beta$ and $\epsilon$ (paper uses $\epsilon = 0.01, \beta =1$) is: 
+                    \[
+                    R(x, a) + \sqrt{\frac{\beta}{\hat{N}_{t}(s)+\epsilon}}
+                    \]
+                    
+                </li>
+            </ul>
+            <div class="credit"><a href="https://arxiv.org/pdf/1606.01868.pdf">Bellmare et. al, Unifying Count-Based Exploration and Intrinsic Motivation</a></div>
+        </div>
+
+        <!-- ################################################################### -->
+        <div class="step slide">
+            <h1 class="et">Pseudo-Count Performance</h1>
+            <center>
+                <iframe width="900" height="450" src="https://www.youtube.com/embed/0yI2wJ6F8r0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </center>
+            <ul>
+                <li>Observations are images. Actions are move left, right, jump, go down.</li>
+                <li>
+                    In $100$ million frames of training:
+                    <ul>
+                        <li>DQN explores $2$ rooms</li>
+                        <li>DQN + pseudo-count explores $15$ different rooms</li>
+                    </ul>
+                </li>
+                <li>Go to 1:50 mark in the video to see exploration behavior.</li>
+            </ul>
+        </div>
+
+        <!-- ###################################################### -->
+        <div class="step slide">
+            <h1 class="nt">Intrinsic Rewards</h1>
+            <ul>
+                <li>In addition to the pseudo-count, there are many other ways to compute an intrinsic reward:
+                    <ul>
+                        <li>Random Network Distillation</li>
+                        <li>Curiosity-driven exploration through:<ul>
+                                <li>
+                                    forward dynamics prediction model
+                                </li>
+                                <li>
+                                    inverse dynamics model
+                                </li>
+                            </ul>
+                            <li>Entropy regularization</li>
+                            <li>etc ...</li>
+                    </ul>
+                </li>
+                <li>Generally we want to encourage taking actions to reach novel states we have not seen before and should see</li>
+            </ul>
+        </div>
+
+        <!-- ################################################################### -->
+        
+
+        <!-- ######################### New Section ############################# -->
+        
+
+        <!-- ######################### New Section ############################# -->
+        <!-- <div class="step slide">
+            <h1 class="nt">Long horizon RL problems</h1>
+            <ul>
+            <li>In sequential decision making, actions may have consequences only observable many timesteps
+            later:
+            <ul>
+            <li>
+            Financial investment (portfolio may not mature for months).
+            </li>
+            <li>
+            Robotic navigation (choosing the wrong route may never incur any reward).
+            </li>
+            <li>
+            Chess (a move might decide the game while there are many moves left).
+            </li>
+            </ul>
+            </li>
+            <li>If there is no reward signal for many timesteps, we can not use uncertainty estimates of action
+            values for exploration.</li>
+            </ul>
+            </div> -->
+
+            <!-- ######################### New Section ############################# -->
+            <!-- <div class="step slide">
+                <h1 class="nt">Possible solutions to the long horizon RL problems</h1>
+                <ul>
+                <li>There are many competing and complementary solutions:
+                <ul>
+                <li>
+                Novelty-driven exploration
+                </li>
+                <li>
+                Search to explore frontier states
+                </li>
+                <li>
+                Search to explore sub-MDP
+                </li>
+                <li>
+                Imitation Learning
+                </li>
+                <li>
+                Bayes adative RL
+                </li>
+                <li>
+                Learning to explore
+                </li>
+                <li>
+                etc...
+                </li>
+                </ul>
+                </li>
+                <li>We will only focus on the first three in this lecture.</li>
+                </ul>
+                </div> -->
+
+                <!-- ###################################################### -->
+                <!-- <div class="step slide">
+                    <h1 class="nt">Novelty-driven Exploration without Estimating Pseudo-count</h1>
+                    <ul>
+                        <li>If the MDP reward is often $0$, add another term to encourage the policy to visit novel states.</li>
+                        \[
+                        r_t = e_t + i_t
+                        \]
+                        <li>where:
+                            <ul>
+                                <li>$e_t$ is the reward defined by the MDP, often called extrinsic reward</li>
+                                <li>$i_t$ is the novelty bonus, often called intrinsic reward</li>
+                            </ul>
+                        </li>
+                        <li>We will use Random Network Distillation as a case study.</li>
+                    </ul>
+                </div> -->
+
+                <!-- ###################################################### -->
+                <div class="step slide">
+                    <h1 class="nt">Leveraging Model Predicton Errors for Novelty</h1>
+                    <ul>
+                        <li>Suppose you train a neural net to predict the MDP dynamics function $\rho : \mathcal{S} \times \mathcal{A} \to \mathcal{S}$. Predict $s_{t+1} = \rho(s_t, a)$ (training a world model). Intuitively if we can't predict the next state, then the current state is one that needs more data collection/exploration
+                        </li>
+                        <li>When might the trained neural net fail to predict the next state accurately? And which errors can be used for intrisnic rewards?</li>
+                        <ol class="substep">
+                            <li>Lack of seen training data (similar to count based exploration!). Also known as <b>epistemic uncertainty</b></li>
+                            <li>Stochastic Environment States (hard to predict with any function when the data itself is not determinstic). Also known as <b>aleatoric uncertainty</b></li>
+                            <li>Model misspecification. Perhaps some critical data that makes an MDP markov was not given to the model, or the model architecture / function structure itself is not sufficiently expressive.</li>
+                        </ol>
+                        <li class="substep">Only error due to lack of training data can be used. All else is pure noise that will be hard to learn from. We will introduce Random network Distillation and see how that helps.</li>
+                    </ul>
+                    
+                    <div class="credit"><a href="https://arxiv.org/pdf/1606.01868.pdf">Burda et. al, Random Network Distillation</a></div>
+                </div>
+                <div class="step slide">
+                    <h1 class="nt">Random Network Distillation (RND)</h1>
+                    <ul>
+                        <li>Use two neural networks to compute the novelty bonus (intrinsic reward $i_t$):
+                            <ul>
+                                <li>A fixed and randomly initialized target network, mapping observation to $k$-dim features,
+                                    $f: \mathcal{S} \rightarrow \mathbb{R}^{k}$</li>
+                                <li>A predictor network, $\hat{f}_{\theta}: \mathcal{S} \rightarrow \mathbb{R}^{k}$</li>
+                            </ul>
+                        </li>
+                        <li>Given a state $s_t$, the novelty bonus is the difference in predicted features.</li>
+                        \[
+                        i_t = \| \hat{f}_\theta(s_t) - f(s_t) \|^2
+                        \]
+                        <li>The predictor network is trained to match the output of the target network using previously collected experience:
+                        \[
+                        \text{minimize}_{\theta} \| \hat{f}_{\theta}(s) - f(s) \|^2
+                        \]
+                        Usually we only optimize for a few steps (with e.g. MSE loss).
+                        </li>
+                    </ul>
+                    <div class="credit"><a href="https://arxiv.org/pdf/1606.01868.pdf">Burda et. al, Random Network Distillation</a></div>
+                </div>
+                <div class="step slide">
+                    <h1 class="nt">RND Intuition</h1>
+                    <ul>
+                        <li>Which of the prediction errors below does RND have and why?</li>
+                        <ol>
+                            <li>Lack of seen training data: <span class="substep">RND has this type of error, it is when $\hat{f}_\theta$ has not been trained enough (seen enough samples) on data to predict target neural net $f$ output</span></li>
+                            <li>Stochastic Environment States: <span class="substep">RND does not have this type of error. The target prediction is another neural net $f$ that is deterministic</span></li>
+                            <li>Model misspecification: <span class="substep">RND "generally" does not have this error. The targets $\hat{f}_\theta$ must predict are generated by a neural network with the same inputs and architecture.</span></li>
+                        </ol>
+                        <li>We see that RND has some nice properties for intrinsic reward generation! We will now see it in practice next</li>
+                    </ul>
+                    
+                    <div class="credit"><a href="https://arxiv.org/pdf/1606.01868.pdf">Burda et. al, Random Network Distillation</a></div>
+                </div>
+
+                <!-- ###################################################### -->
+                <div class="step slide">
+                    <h1 class="nt">Random Network Distillation Performance</h1>
+                    <center>
+                        <iframe width="1120" height="630" src="https://www.youtube.com/embed/40VZeFppDEM"
+                                                          title="YouTube video player" frameborder="0"
+                                                                                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                                       allowfullscreen></iframe>
+                    </center>
+                    <div class="credit"><a href="https://arxiv.org/pdf/1606.01868.pdf">Burda et. al, Random Network Distillation</a></div>
+                </div>
+                <div class="step slide">
+                    <h1 class="nt">Random Network Distillation Performance</h1>
+                    <img src="./SP24_L7/rnd_fig.png" width="65%"/>
+                    <div class="credit"><a href="https://arxiv.org/pdf/1606.01868.pdf">Burda et. al, Random Network Distillation</a></div>
+                </div>
+
+                <!-- ################################################################### -->
+                <div class="step slide">
+                    <h1 class="nt">Summary of Terms</h1>
+                    <ul>
+                        <li>Credit Assignment Problem: Figuring out how much an action influenced our reward/return</li>
+                        <li>Noisy TV Problem: A problem when an agent seeking novel states gets stuck exploring the wrong novel states (like a noisy tv).</li>
+                        <li>Multi-Armed Bandit Problem: Repeatedly select 1 of K levers and receive a reward sampled from the lever's distribution.</li>
+                        <li>Regret: Optimal action's reward minus achieved reward. Similar to opportunity cost.</li>
+                        <li>Upper Confidence Bound: A upper bound on the optimal value of an action with logarithmic scale regret.</li>
+                        <li>Intrinsic Reward: An additional reward added to an environment (extrinsic) reward.</li>
+                        <li>Epistemic Uncertainty: The uncertainty associated with randomness that can be explained/predicted (when given suffficient information)</li>
+                        <li>Aleatoric Uncertainty: The uncertainty associated with randomness that cannot be explained/predicted</li>
+                    </ul>
+                </div>
+
+    </div>
+    <!--
+        Add navigation-ui controls: back, forward and a select list.
+        Add a progress indicator bar (current step / all steps)
+        Add the help popup plugin
+    -->
+    <div id="impress-toolbar"></div>
+
+    <div class="impress-progressbar">
+        <div></div>
+    </div>
+    <div class="impress-progress"></div>
+
+    <div id="impress-help"></div>
+
+    <script type="text/javascript" src="../extras/highlight/highlight.pack.js"></script>
+    <script src="../extras/mermaid/mermaid.min.js"></script>
+    <script type="text/javascript" src="../extras/markdown/markdown.js"></script>
+    <!--
+        To make all described above really work, you need to include impress.js in the page.
+        You also need to call a `impress().init()` function to initialize impress.js presentation.
+        And you should do it in the end of your document. 
+    -->
+    <script>
+        function setSlideID() {
+            x = document.getElementsByClassName("slide");
+            const titleSet = new Set();
+            var titleDict = {};
+            for (var i = 2; i < x.length; i++) {
+                h1 = x[i].getElementsByTagName("h1")[0];
+                if (h1) {
+                    // alert(title);
+                    title = '--' + h1.innerHTML.replace(/\W/g, '');
+                    if (titleSet.has(title)) {
+                        titleDict[title] += 1;
+                        title = title + '_' + titleDict[title].toString();
+                    }
+                    else {
+                        titleSet.add(title);
+                        titleDict[title] = 1;
+                    }
+                    x[i].id = title;
+                }
+            }
+        }
+        setSlideID();
+    </script>
+    <script>
+        function getTitles() {
+            var secs = document.getElementsByClassName("separator");
+            var titleList = [];
+            var titleIdList = [];
+            const titleIdSet = new Set();
+            for (var i = 0; i < secs.length; i++) {
+                h1 = secs[i].getElementsByTagName("h1")[0];
+                titleId = 'Sec:' + h1.innerHTML.replace(/\W/g, '');
+                if (titleIdSet.has(titleId)) {
+                    continue;
+                }
+                titleIdSet.add(titleId);
+                titleList.push(h1.innerHTML);
+                titleIdList.push(titleId);
+                secs[i].id = titleId;
+            }
+            console.log(titleList);
+            return [titleList, titleIdList];
+        }
+
+        function addToC(titleList, titleIdList) {
+            var agenda = document.getElementById("agenda");
+            agenda.innerHTML = '';
+            for (var i = 0; i < titleList.length; i++) {
+                agenda.innerHTML += '<li><a href="#' + titleIdList[i] + '">' + titleList[i] + '</a></li>';
+            }
+        }
+
+        res = getTitles();
+        titleList = res[0]; titleIdList = res[1];
+        addToC(titleList, titleIdList);
+    </script>
+    <script type="text/javascript" src="../js/impress.js"></script>
+    <script type="text/javascript">
+        (function () {
+            var vizPrefix = "language-viz-";
+            Array.prototype.forEach.call(document.querySelectorAll("[class^=" + vizPrefix + "]"), function (x) {
+                var engine;
+                x.getAttribute("class").split(" ").forEach(function (cls) {
+                    if (cls.startsWith(vizPrefix)) {
+                        engine = cls.substr(vizPrefix.length);
+                    }
+                });
+                var image = new DOMParser().parseFromString(Viz(x.innerText, { format: "svg", engine: engine }), "image/svg+xml");
+                x.parentNode.insertBefore(image.documentElement, x);
+                x.style.display = 'none'
+                x.parentNode.style.backgroundColor = "white"
+            });
+        })();
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    extensions: ["AMSmath.js", "AMSsymbols.js", "color.js"],
+                },
+                jax: ["input/TeX", "output/SVG"]
+            },
+            AuthorInit: function () {
+                MathJax.Hub.Register.StartupHook("Begin", function () {
+                    MathJax.Hub.Queue(function () {
+                        var all = MathJax.Hub.getAllJax(), i;
+                        for (i = 0; i < all.length; i += 1) {
+                            all[i].SourceElement().parentNode.className += ' has-jax';
+                        }
+                    })
+                });
+            }
+        };
+    </script>
+    <script type="text/javascript" src="../extras/mathjax/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+    <script>impress().init();</script>
+</body>
+
+</html>
+<!-- discarded -->
+
+<!-- 
+    Modifications requested on May 22:
+
+    1. Add example of how UCB can be extended to deep RL and improve over taught algo. Done.
+
+    2. For the section of long-horizon RL, i want you to change it. 
+    - make it a section of "intrinsic rewards"
+    - add the approaches that uses intrinsic rewards to drive exploration: 
+    - curiosity-driven exploration by forward dynamic prediction, 
+    - inverse dynamic prediction, and 
+    - RND. 
+    - we can actually also explain SAC here. Done.
+
+    3. structural environment modeling based
+-->
