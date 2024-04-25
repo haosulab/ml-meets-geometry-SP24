@@ -166,7 +166,7 @@
                     <li>In continuous deterministic Q-learning, the update target becomes $r+\gamma Q(s', \pi_{\phi}(s'))$.</li>
                     <li>In literature, the policy network is also known as the "actor" and the value network is known as the "critic"</li>
                 </ul>
-                <img src="./L16/ddpg_networks.png" width="80%"/>
+                <img src="./L6/ddpg_networks.png" width="80%"/>
             </div>
 
             <!-- ################################################################### -->
@@ -341,10 +341,10 @@
                     <li> Example: Montezuma's revenge, Blind Cliffwalk, Any long-horizon sparse reward problem </li>
                     <div class="row">
                         <div class="column" style="flex: 10%">
-                            <img src="./L16/MR.png" width="75%"></img>
+                            <img src="./L6/MR.png" width="75%"></img>
                         </div>
                         <div class="column" style="flex: 10%">
-                            <img src="./L16/Blind_Cliffwalk.png" width="100%"></img>
+                            <img src="./L6/Blind_Cliffwalk.png" width="100%"></img>
                         </div>
                     </div>
                 </ul>
@@ -358,7 +358,7 @@
                     <li> Episode is terminated whenever the agent takes the $\color{red}{\text{wrong}}$ action. </li>
                     <li> Agent will get reward $1$ after taking $n$ $\color{black}{\text{right}}$ actions. </li>
                     <div style=margin-top:10px>
-                        <img src="./L16/Blind_Cliffwalk.png" width="75%"/>
+                        <img src="./L6/Blind_Cliffwalk.png" width="75%"/>
                     </div>
                 </ul>
                 <div class="credit"><a href="https://arxiv.org/pdf/1511.05952.pdf"> Schaul et. al, Prioritized experience replay (ICLR 2016)</a> </div>
@@ -373,7 +373,7 @@
                         current state. </li>
 
                     <div style=margin-top:10px>
-                        <img src="./L16/Blind_Cliffwalk_QL.png" width="35%"/>
+                        <img src="./L6/Blind_Cliffwalk_QL.png" width="35%"/>
                     </div>
                 </ul>
                 <div class="credit"><a href="https://arxiv.org/pdf/1511.05952.pdf"> Schaul et. al, Prioritized experience replay (ICLR 2016)</a> </div>
@@ -485,7 +485,7 @@
                     <li> $Q_\th(s, a) = \sum_i p_{\th, i}(s, a) z_i$. </li>
                     <li> Update rules of $Q$, $x_t$ is state at time-step $t$.
                         <div style=margin-top:10px>
-                            <img src="./L16/DRL.png" width="42%"/>
+                            <img src="./L6/DRL.png" width="42%"/>
                         </div>
                     </li>
                 </ul>
@@ -573,7 +573,7 @@
                 <ul>
                     <li> Prioritized replay, multi-step learning, distributional RL are the most important tricks in Rainbow. </li>
                     <div style=margin-top:10px>
-                        <img src="./L16/Rainbow.png" width="42%"/>
+                        <img src="./L6/Rainbow.png" width="42%"/>
                     </div>
                 </ul>
                 <div class="credit"><a href="https://arxiv.org/pdf/1710.02298.pdf">Hessel et. al, Rainbow: Combining Improvements in Deep Reinforcement Learning (AAAI 2018)</a> </div>

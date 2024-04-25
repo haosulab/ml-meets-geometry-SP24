@@ -67,7 +67,7 @@
                 <li>New restauraunt is always a risk (unknown food quality, service etc.) </li>
                 <li>But without going to the new restauraunt you never know! How do we balance this?</li>
             </ul>
-            <img src="./SP24_L7/exploration_vs_exploitation.png" alt="" width="50%">
+            <img src="./L7/exploration_vs_exploitation.png" alt="" width="50%">
         </div>
         <div class="step slide">
             <h1 class="nt">Why Exploration is Difficult</h1>
@@ -80,7 +80,7 @@
                     </ul>
                 </li>
                 <li>Even exploration in low-dimensional space may be tricky when there are "alleys". Low probability of going through small gaps to then explore other states:</li>
-                <img src="./SP24_L7/simple_2d_map.png" alt="" width="30%" />
+                <img src="./L7/simple_2d_map.png" alt="" width="30%" />
             </ul>
         </div>
         <div class="step slide">
@@ -88,7 +88,7 @@
             <ul>
                 <li>Suppose your dense reward for the environment below is euclidean distance to the flag. The return maximizing sequence of actions are to go through the samll gap and reach the flag (global minimum)</li>
                 <li>But you will never know to do that unless you explore, and with this dense reward function your trained agent will likely headbutt into the blue wall (local minimum)</li>
-                <img src="./SP24_L7/simple_2d_map_headbutt.png" alt="" width="30%" />
+                <img src="./L7/simple_2d_map_headbutt.png" alt="" width="30%" />
             </ul>
         </div>
         <div class="step slide">
@@ -100,7 +100,7 @@
             </ul>
             <ul class="substep">
                 <li >The agent will become a couch potato and stare at the TV all day.</li>
-                <img src="./SP24_L7/the-noisy-TV-problem.gif" alt="" width="100%">
+                <img src="./L7/the-noisy-TV-problem.gif" alt="" width="100%">
             </ul>
         </div>
 
@@ -145,8 +145,8 @@
                 <li>In this game you have a few slots and can choose a slot to pull. You then receive a reward sampled from an unknown distribution</li>
             </ul>
             <div style="display: flex">
-                <img src="./SP24_L7/slots.png" alt="" width="30%" style="display:inline-block">
-            <img src="./SP24_L7/slot-dist.png" alt="" width="30%" style="display:inline-block">
+                <img src="./L7/slots.png" alt="" width="30%" style="display:inline-block">
+            <img src="./L7/slot-dist.png" alt="" width="30%" style="display:inline-block">
             </div>
         </div>
         <!-- ################################################################### -->
@@ -184,7 +184,7 @@
                 <li>
                     Goal is to maximize cumulative reward $\sum_{t=1}^T r_t$
                 </li>
-                <img src="./SP24_L7/slot-dist.png" alt="" width="30%">
+                <img src="./L7/slot-dist.png" alt="" width="30%">
                 </li>
             </ul>
         </div>
@@ -275,7 +275,7 @@
         <!-- ################################################################### -->
         <div class="step slide">
             <h1 class="et">Desirable Total Regret Behavior</h1>
-            <img src="./SP24_L7/regret_as_function_of_time.png" width="1000" height="650"></img>
+            <img src="./L7/regret_as_function_of_time.png" width="1000" height="650"></img>
 
             <ul>
                 <li>What can you infer from this figure?</li>
@@ -331,7 +331,7 @@
         <div class="step slide">
             <h1 class="et">The Principle of Optimism in the Face of Uncertainty</h1>
             <div class="row" style="flex: 0%">
-                <img src="./SP24_L7/optimism_before.png" width="900" height="600" />
+                <img src="./L7/optimism_before.png" width="900" height="600" />
             </div>
             <ul>
 
@@ -568,7 +568,7 @@
                 <li>$\mathcal{L}(\{s_n\}_{n=1}^N) = \underbrace{-\frac{1}{N} \sum_{n=1}^N \log p(s_n)}_\text{reconstruction loss} + \underbrace{\frac{1}{N} \frac{\lambda}{K} \sum_{n=1}^N\sum_{i=1}^k \min \big \{ (1-b_i(s_n))^2, b_i(s_n)^2 \big\}}_\text{sigmoid activation being closer to binary}$</li>
                 <!-- <li>Intuition for autoencoder: Effectively mapping high dimensional state to lower dimensions (a code), and then decoding that into a binary </li> -->
 
-                <img src="./SP24_L7/autoencoder.png" width="30%">
+                <img src="./L7/autoencoder.png" width="30%">
             </ul>
             <div class="credit"><a href="https://arxiv.org/abs/1611.04717">Tang et. al, # Exploration: A Study of Count-Based Exploration for Deep Reinforcement Learning</a></div>
             <div class="credit"><a href="https://lilianweng.github.io/posts/2020-06-07-exploration-drl/">Lilliang Weng, Exploration Strategies in Deep Reinforcement Learning</a></div> 
@@ -643,7 +643,7 @@
                 <li>Gaussian Mixture Model Training Process initializes $k$ different Gaussians and fits them to the data. Suppose for example our state space has 2 dimensions below.</li>
                 <li>The GMM is our density model and generates probabilities of seeing some input $p_t(s)$</li>
                 <li>Typically optimized via Expectation Maximization (EM)</li>
-                <img src="./SP24_L7/gaussian_mixture_model.gif"/>
+                <img src="./L7/gaussian_mixture_model.gif"/>
                 
             </ul>
             <div class="ack">Gif from <a href="https://brilliant.org/wiki/gaussian-mixture-model/">https://brilliant.org/wiki/gaussian-mixture-model/</a>, which is also a easy resource to learn how EM works.</div>
@@ -884,7 +884,7 @@
                 </div>
                 <div class="step slide">
                     <h1 class="nt">Random Network Distillation Performance</h1>
-                    <img src="./SP24_L7/rnd_fig.png" width="65%"/>
+                    <img src="./L7/rnd_fig.png" width="65%"/>
                     <div class="credit"><a href="https://arxiv.org/pdf/1606.01868.pdf">Burda et. al, Random Network Distillation</a></div>
                 </div>
 
